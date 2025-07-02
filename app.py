@@ -45,7 +45,7 @@ def predict():
             'confidence': round(confidence, 2)
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e)}), "Upload correct img"
 
 if __name__ == '__main__':
     app.run(debug=True)
