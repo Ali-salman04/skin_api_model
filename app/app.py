@@ -3,16 +3,19 @@ from tensorflow.keras.models import load_model
 import numpy as np
 import cv2
 from flask_cors import CORS
+import os
 
 app = Flask(__name__)
 CORS(app)
 
-model = load_model('disease_classification_model.h5')
+model_path = os.path.join(os.path.dirname(__file__), 'disease_classification_model.h5')
+model = load_model(model_path)
+
 CATEGORIES = ['Acne', 'Eczema', 'Psoriasis', 'Melanoma', 'BCC', 'Rosacea', 'Warts']
 
 @app.route('/')
 def home():
-    return 'Skin Disease Prediction API is running!'
+    return '✅ Skin Disease Prediction API is running!'
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -34,6 +37,3 @@ def predict():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-if __name__ == '__main__':
-    app.run(debug=True)
