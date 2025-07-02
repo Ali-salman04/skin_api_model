@@ -7,7 +7,7 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-model = load_model('di_classification_model.keras')
+model = load_model('di_classification_model.h5')
 CATEGORIES = ['Acne', 'Eczema', 'Psoriasis', 'Melanoma', 'BCC', 'Rosacea', 'Warts']
 
 @app.route('/')
