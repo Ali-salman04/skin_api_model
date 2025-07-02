@@ -8,7 +8,7 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# ✅ Load the .pkl model (e.g. a scikit-learn model)
+# ✅ Load the .pkl model (placed in app/ folder)
 model_path = os.path.join(os.path.dirname(__file__), 'EN0_model.pkl')
 with open(model_path, 'rb') as f:
     model = pickle.load(f)
@@ -17,18 +17,20 @@ CATEGORIES = ['Acne', 'Eczema', 'Psoriasis', 'Melanoma', 'BCC', 'Rosacea', 'Wart
 
 @app.route('/')
 def home():
-    return '✅ Skin Disease Prediction API is running with .pkl model!'
+    return '✅ Skin Disease Prediction API is running (PKL Model)'
 
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
+        # ✅ Read and process image
         file = request.files['image']
         img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_COLOR)
         img = cv2.resize(img, (128, 128))
         img = img.astype('float32') / 255.0
-        img = img.flatten().reshape(1, -1)  # ✅ Flatten for sklearn models
+        img = img.flatten().reshape(1, -1)  # For sklearn input
 
-        prediction = model.predict_proba(img)[0]  # Probability per class
+        # ✅ Prediction
+        prediction = model.predict_proba(img)[0]
         pred_index = np.argmax(prediction)
         predicted_label = CATEGORIES[pred_index]
         confidence = float(prediction[pred_index]) * 100
@@ -41,5 +43,6 @@ def predict():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# Optional for local testing
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
