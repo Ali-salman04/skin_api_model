@@ -1,68 +1,49 @@
 from flask import Flask, request, jsonify
+from tensorflow.keras.models import load_model
+import numpy as np
+import cv2
 from flask_cors import CORS
-import torch
-import torch.nn as nn
-from torchvision import models, transforms
-from PIL import Image
-import io
 
 app = Flask(__name__)
-CORS(app)
+CORS(app)  # Enable CORS to allow frontend to connect
 
-# Define the model architecture exactly as it was during training
-model = models.mobilenet_v2(weights=None)  # weights=None avoids loading pretrained ImageNet weights
+# Load trained model
+model = load_model('skin_disease_model.h5')
 
-# Important: Match this with your training architecture
-model.classifier = nn.Sequential(
-    nn.Dropout(0.2),
-    nn.Sequential(
-        nn.Linear(1280, 7)
-    )
-)
-
-# Load the trained weights (state_dict)
-model.load_state_dict(torch.load('mobilenet.pt', map_location=torch.device('cpu')))
-model.eval()
-
-# Define the class labels in the same order used during training
+# Make sure this exactly matches your model's class order
 CATEGORIES = ['Acne', 'Eczema', 'Psoriasis', 'Melanoma', 'BCC', 'Rosacea', 'Warts']
-
-# Define image preprocessing pipeline
-transform = transforms.Compose([
-    transforms.Resize((128, 128)),        # Resize to match training input size
-    transforms.ToTensor(),                # Convert to Tensor and scale [0,1]
-    transforms.Normalize([0.5]*3, [0.5]*3)  # Normalize to [-1, 1] if trained that way
-])
 
 @app.route('/')
 def home():
-    return '✅ Skin Disease Prediction API (PyTorch) is running!'
+    return 'Skin Disease Prediction API is running!'
 
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        if 'image' not in request.files:
-            return jsonify({'error': 'No image uploaded'}), 400
-
         file = request.files['image']
-        image = Image.open(io.BytesIO(file.read())).convert('RGB')
 
-        # Apply preprocessing
-        input_tensor = transform(image).unsqueeze(0)  # Shape: [1, 3, 128, 128]
+        # Read image and decode it to OpenCV format
+        img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_COLOR)
 
-        # Run inference
-        with torch.no_grad():
-            output = model(input_tensor)
-            probabilities = torch.nn.functional.softmax(output[0], dim=0)
-            pred_index = torch.argmax(probabilities).item()
-            predicted_label = CATEGORIES[pred_index]
-            confidence = probabilities[pred_index].item() * 100
+        # Resize image to 128x128 (based on your training code)
+        img = cv2.resize(img, (128, 128))
+
+        # Normalize pixel values
+        img = img.astype('float32') / 255.0
+
+        # Expand dimensions for batch size
+        img = np.expand_dims(img, axis=0)
+
+        # Make prediction
+        prediction = model.predict(img)
+        pred_index = np.argmax(prediction)
+        predicted_label = CATEGORIES[pred_index]
+        confidence = float(prediction[0][pred_index]) * 100
 
         return jsonify({
             'prediction': predicted_label,
             'confidence': round(confidence, 2)
         })
-
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
