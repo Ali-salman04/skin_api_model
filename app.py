@@ -8,7 +8,7 @@ app = Flask(__name__)
 CORS(app)  # Enable CORS to allow frontend to connect
 
 # Load trained model
-model = load_model('mobilenet.h5')
+model = load_model('skin_disease_model.h5')
 
 # Make sure this exactly matches your model's class order
 CATEGORIES = ['Acne', 'Eczema', 'Psoriasis', 'Melanoma', 'BCC', 'Rosacea', 'Warts']
