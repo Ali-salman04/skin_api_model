@@ -11,7 +11,7 @@ CORS(app)
 # Load the trained model
 model = load_model('mobilenet_skin_disease_model.h5')
 
-# Categories used during training
+# Categories used during training (must match model output order)
 CATEGORIES = [
     'ACNEREF',
     'Actinic KeratosisREF',
@@ -22,6 +22,18 @@ CATEGORIES = [
     'NevusREF',
     'Pigmented_Benign_KeratosisREF'
 ]
+
+# User-friendly label mapping
+DISPLAY_LABELS = {
+    'ACNEREF': 'Acne',
+    'Actinic KeratosisREF': 'Actinic Keratosis',
+    'Basal Cell CarcinomaREF': 'Basal Cell Carcinoma',
+    'DermatographiaREF': 'Dermatographia',
+    'Melanocytic_NevusREF': 'Melanocytic Nevus',
+    'MelanomaREF': 'Melanoma',
+    'NevusREF': 'Nevus',
+    'Pigmented_Benign_KeratosisREF': 'Pigmented Benign Keratosis'
+}
 
 @app.route('/')
 def home():
@@ -39,7 +51,7 @@ def predict():
         if img is None:
             return jsonify({'error': 'Invalid image format'}), 400
 
-        # ⚠️ Resize to 96x96 instead of 128x128
+        # Resize to model input size
         img = cv2.resize(img, (96, 96))
         img = img.astype('float32') / 255.0
         img = np.expand_dims(img, axis=0)
@@ -52,11 +64,13 @@ def predict():
             return jsonify({'error': 'Prediction index out of range'}), 500
 
         predicted_label = CATEGORIES[pred_index]
+        display_label = DISPLAY_LABELS.get(predicted_label, predicted_label)
         confidence = float(prediction[0][pred_index]) * 100
 
+        result_string = f"{predicted_label} ---- {display_label} ({round(confidence, 2)}%)"
+
         return jsonify({
-            'prediction': predicted_label,
-            'confidence': round(confidence, 2)
+            'result': result_string
         })
 
     except Exception as e:
