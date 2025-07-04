@@ -1,29 +1,32 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import torch
-import torchvision.transforms as transforms
+from torchvision import models, transforms
 from PIL import Image
 import io
 
 app = Flask(__name__)
 CORS(app)
 
-# Load PyTorch model
-model = torch.load('mobilenet.pt', map_location=torch.device('cpu'))
+# 1. Define or load the same model architecture
+model = models.mobilenet_v2(pretrained=False)  # Or your custom model
+model.classifier[1] = torch.nn.Linear(model.last_channel, 7)  # Adjust final layer for 7 classes
+
+# 2. Load weights into model
+model.load_state_dict(torch.load('mobilenet.pt', map_location=torch.device('cpu')))
 model.eval()  # Set to evaluation mode
 
 CATEGORIES = ['Acne', 'Eczema', 'Psoriasis', 'Melanoma', 'BCC', 'Rosacea', 'Warts']
 
-# Define preprocessing
 transform = transforms.Compose([
     transforms.Resize((128, 128)),
-    transforms.ToTensor(),  # Converts to [0,1] and CHW format
-    transforms.Normalize([0.5]*3, [0.5]*3)  # Adjust based on your training setup
+    transforms.ToTensor(),
+    transforms.Normalize([0.5]*3, [0.5]*3)
 ])
 
 @app.route('/')
 def home():
-    return 'Skin Disease Prediction API (PyTorch) is running!'
+    return 'Skin Disease Prediction API (PyTorch with state_dict) is running!'
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -32,10 +35,8 @@ def predict():
             return jsonify({'error': 'No image uploaded'}), 400
 
         image_file = request.files['image']
-        image_bytes = image_file.read()
-        image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-
-        input_tensor = transform(image).unsqueeze(0)  # Add batch dimension
+        image = Image.open(io.BytesIO(image_file.read())).convert('RGB')
+        input_tensor = transform(image).unsqueeze(0)
 
         with torch.no_grad():
             outputs = model(input_tensor)
@@ -48,6 +49,7 @@ def predict():
             'prediction': predicted_label,
             'confidence': round(confidence, 2)
         })
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
