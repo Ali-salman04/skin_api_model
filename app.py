@@ -11,7 +11,7 @@ CORS(app)  # Enable CORS to allow frontend to connect
 model = load_model('mobilenet_skin_disease_model.h5')
 
 # Make sure this exactly matches your model's class order
-CATEGORIES = ['Acne', 'Eczema', 'Psoriasis', 'Melanoma', 'BCC', 'Rosacea', 'Warts']
+CATEGORIES = ['ACNEREF', 'Actinic KeratosisREF', 'Basal Cell CarcinomaREF', 'DermatographiaREF', 'Melanocytic_NevusREF', 'MelanomaREF', 'NevusREF', 'Pigmented_Benign_KeratosisREF']
 
 @app.route('/')
 def home():
