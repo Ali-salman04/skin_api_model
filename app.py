@@ -23,18 +23,6 @@ CATEGORIES = [
     'Pigmented_Benign_KeratosisREF'
 ]
 
-# Friendly display labels for each class
-DISPLAY_LABELS = {
-    'ACNEREF': 'Acne',
-    'Actinic KeratosisREF': 'Actinic Keratosis',
-    'Basal Cell CarcinomaREF': 'Basal Cell Carcinoma',
-    'DermatographiaREF': 'Dermatographia',
-    'Melanocytic_NevusREF': 'Melanocytic Nevus',
-    'MelanomaREF': 'Melanoma',
-    'NevusREF': 'Nevus',
-    'Pigmented_Benign_KeratosisREF': 'Pigmented Benign Keratosis'
-}
-
 @app.route('/')
 def home():
     return '✅ Skin Disease Prediction API is running!'
@@ -46,30 +34,29 @@ def predict():
         if not file:
             return jsonify({'error': 'No image uploaded'}), 400
 
-        # Decode and preprocess image
+        # Decode image
         img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_COLOR)
         if img is None:
             return jsonify({'error': 'Invalid image format'}), 400
 
-        img = cv2.resize(img, (96, 96))  # match model input shape
+        # ⚠️ Resize to 96x96 instead of 128x128
+        img = cv2.resize(img, (96, 96))
         img = img.astype('float32') / 255.0
         img = np.expand_dims(img, axis=0)
 
-        # Prediction
+        # Predict
         prediction = model.predict(img)
         pred_index = np.argmax(prediction)
 
         if pred_index >= len(CATEGORIES):
             return jsonify({'error': 'Prediction index out of range'}), 500
 
-        internal_label = CATEGORIES[pred_index]
-        display_label = DISPLAY_LABELS.get(internal_label, internal_label)
+        predicted_label = CATEGORIES[pred_index]
         confidence = float(prediction[0][pred_index]) * 100
 
-        result_text = f"{display_label} ({round(confidence, 2)}%)"
-
         return jsonify({
-            'result': result_text
+            'prediction': predicted_label,
+            'confidence': round(confidence, 2)
         })
 
     except Exception as e:
