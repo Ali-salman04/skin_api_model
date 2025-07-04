@@ -6,12 +6,12 @@ from flask_cors import CORS
 import traceback
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS to allow frontend access
+CORS(app)
 
 # Load the trained model
 model = load_model('mobilenet_skin_disease_model.h5')
 
-# Define the class labels in the same order as used during training
+# Categories used during training
 CATEGORIES = [
     'ACNEREF',
     'Actinic KeratosisREF',
@@ -30,26 +30,24 @@ def home():
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        # Check if image is provided
         file = request.files.get('image')
         if not file:
             return jsonify({'error': 'No image uploaded'}), 400
 
-        # Decode image to OpenCV format
+        # Decode image
         img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_COLOR)
         if img is None:
             return jsonify({'error': 'Invalid image format'}), 400
 
-        # Resize and preprocess the image
-        img = cv2.resize(img, (128, 128))  # Match model input size
+        # ⚠️ Resize to 96x96 instead of 128x128
+        img = cv2.resize(img, (96, 96))
         img = img.astype('float32') / 255.0
         img = np.expand_dims(img, axis=0)
 
-        # Perform prediction
+        # Predict
         prediction = model.predict(img)
-        print("Prediction output:", prediction)
-
         pred_index = np.argmax(prediction)
+
         if pred_index >= len(CATEGORIES):
             return jsonify({'error': 'Prediction index out of range'}), 500
 
