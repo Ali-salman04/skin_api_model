@@ -23,7 +23,7 @@ CATEGORIES = [
     'Pigmented_Benign_KeratosisREF'
 ]
 
-# User-friendly display names
+# Friendly display labels for each class
 DISPLAY_LABELS = {
     'ACNEREF': 'Acne',
     'Actinic KeratosisREF': 'Actinic Keratosis',
@@ -51,7 +51,7 @@ def predict():
         if img is None:
             return jsonify({'error': 'Invalid image format'}), 400
 
-        img = cv2.resize(img, (96, 96))
+        img = cv2.resize(img, (96, 96))  # match model input shape
         img = img.astype('float32') / 255.0
         img = np.expand_dims(img, axis=0)
 
@@ -66,9 +66,10 @@ def predict():
         display_label = DISPLAY_LABELS.get(internal_label, internal_label)
         confidence = float(prediction[0][pred_index]) * 100
 
+        result_text = f"{display_label} ({round(confidence, 2)}%)"
+
         return jsonify({
-            'label': display_label,
-            'confidence': round(confidence, 2)
+            'result': result_text
         })
 
     except Exception as e:
